@@ -1,1 +1,109 @@
-# akash-tee-amd-sev
+# Akash Provider AMD SEV-SNP Attestation
+
+This project provides AMD SEV-SNP attestation capabilities for Akash Network providers, enabling secure deployment verification through hardware-based memory encryption.
+
+## Overview
+
+The system consists of two main components:
+- **Webhook**: Automatically injects the attestation sidecar into new pods
+- **Attestation Sidecar**: Performs periodic AMD SEV-SNP attestation and exposes verification endpoints
+
+### Architecture
+```
+Provider Instance
+├── Webhook (intercepting new pods)
+│   └── Injects Attestation Sidecar
+│
+└── User Deployments
+    ├── User Container
+    └── Attestation Sidecar
+        ├── Performs AMD SEV verification
+        └── Exposes /verify endpoint
+```
+
+## Components
+
+### Webhook
+Located in `/webhook/`:
+- `Dockerfile`: Builds the webhook container
+- `webhook.py`: Intercepts new pods and injects the attestation sidecar
+- `k8s/webhook.yaml`: Kubernetes configuration for the webhook deployment
+
+The webhook runs at the cluster level and automatically injects the attestation sidecar into every new deployment.
+
+### Attestation Sidecar
+Located in `/sidecar/`:
+- `Dockerfile`: Builds the attestation container
+- `verify-attestation.sh`: Performs periodic AMD SEV-SNP attestation
+- `api.py`: Exposes the verification endpoint
+- `start.sh`: Initialization script
+
+The sidecar performs attestation every 5 minutes and maintains the current verification status.
+
+## Installation
+
+1. Build and push Docker images:
+```bash
+# Build both images
+docker-compose build
+
+# Push to Docker Hub
+docker push yourdockerhub/sev-webhook:latest
+docker push yourdockerhub/sev-attestation:latest
+```
+
+2. Deploy the webhook:
+```bash
+# Create certificates
+./scripts/generate-certs.sh
+
+# Deploy webhook
+kubectl apply -f webhook/k8s/webhook.yaml
+```
+
+## Usage
+
+### For Providers
+The webhook automatically injects the attestation sidecar into all new deployments. No additional configuration is needed for individual deployments.
+
+### For Users
+Users can verify their deployment's AMD SEV-SNP status through the `/verify` endpoint:
+```bash
+curl http://your-deployment-url/verify
+```
+
+Response example:
+```json
+{
+  "attestation_status": "verified",
+  "last_verification": "2025-02-06T20:12:43Z",
+  "verification_output": "Reported TCB Boot Loader from certificate matches...",
+  "attestation_report": "<base64-encoded-report>",
+  "cert_chain": "<base64-encoded-chain>",
+  "vlek_certificate": "<base64-encoded-cert>"
+}
+```
+
+## Security
+
+The attestation process uses AMD's hardware-based security features:
+- Memory encryption via AMD SEV-SNP
+- Hardware-signed attestation reports
+- Verification against AMD's Key Distribution Service (KDS)
+
+Users can independently verify the attestation by:
+1. Decoding the base64 attestation report
+2. Verifying signatures using AMD's public certificates
+3. Confirming hardware measurements
+
+## Technical Details
+
+### Attestation Flow
+1. Sidecar generates attestation report using `snpguest`
+2. Report is signed by AMD hardware (VCEK)
+3. Verification performed against AMD's KDS
+4. Results exposed via `/verify` endpoint
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

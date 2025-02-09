@@ -1,0 +1,11 @@
+version: '3'
+services:
+  webhook:
+    build: 
+      context: ./webhook
+    image: seudockerhub/sev-webhook:latest
+  
+  attestation:
+    build:
+      context: ./sidecar
+    image: seudockerhub/sev-attestation:latest
