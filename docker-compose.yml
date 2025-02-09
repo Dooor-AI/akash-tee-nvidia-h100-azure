@@ -3,9 +3,13 @@ services:
   webhook:
     build: 
       context: ./webhook
-    image: seudockerhub/sev-webhook:latest
-  
+      platforms:
+        - linux/amd64
+    image: brunolaureano/akash-sev-webhook:latest
+
   attestation:
     build:
       context: ./sidecar
-    image: seudockerhub/sev-attestation:latest
+      platforms:
+        - linux/amd64
+    image: brunolaureano/akash-sev-attestation:latest
