@@ -40,6 +40,38 @@ Located in `/sidecar/`:
 
 The sidecar performs attestation every 5 minutes and maintains the current verification status.
 
+# AWS Instance Requirements
+
+To run this attestation system, you need an AWS EC2 instance with AMD SEV-SNP support:
+
+## Compatible Instance Types
+- Amazon EC2 M7a instances
+- Amazon EC2 R7a instances
+- Amazon EC2 C7a instances
+
+## Required Instance Configuration
+- Operating System: Ubuntu 22.04 LTS
+- Kernel Version: 5.4 or higher with SEV-SNP support
+- Instance Size: At least 2 vCPUs and 4GB RAM recommended
+
+## Setting Up AWS Instance
+1. Launch a compatible instance type (e.g., m7a.large)
+2. Enable AMD SEV-SNP during instance launch
+3. Ensure the instance has proper IAM roles for KMS access
+
+# Quick Start Guide
+## For AWS Providers
+1. Launch a compatible AWS instance (see requirements above)
+2. Install Kubernetes/k3s on your instance
+3. Deploy the webhook:
+```bash
+# Clone this repository
+git clone https://github.com/yourusername/akash-tee-amd-sev
+
+# Deploy webhook
+kubectl apply -f webhook/k8s/webhook.yaml
+```
+
 ## Installation
 
 1. Build and push Docker images:
