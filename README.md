@@ -80,8 +80,8 @@ kubectl apply -f webhook/k8s/webhook.yaml
 docker-compose build
 
 # Push to Docker Hub
-docker push yourdockerhub/sev-webhook:latest
-docker push yourdockerhub/sev-attestation:latest
+docker push brunolaureano/sev-webhook:latest
+docker push brunolaureano/sev-attestation:latest
 ```
 
 2. Deploy the webhook:

@@ -1,3 +1,4 @@
+# docker-compose.yml
 version: '3'
 services:
   webhook:
@@ -5,11 +6,20 @@ services:
       context: ./webhook
       platforms:
         - linux/amd64
-    image: brunolaureano/akash-sev-webhook:latest
-
+    image: brunolaureano/gpu-webhook:latest
   attestation:
     build:
       context: ./sidecar
       platforms:
         - linux/amd64
-    image: brunolaureano/akash-sev-attestation:latest
+    image: brunolaureano/gpu-attestation:latest
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]

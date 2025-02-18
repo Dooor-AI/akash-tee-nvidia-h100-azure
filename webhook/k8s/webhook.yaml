@@ -1,47 +1,54 @@
+# webhook/k8s/webhook.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: sev-webhook
+  name: gpu-webhook
   namespace: kube-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: sev-webhook
+  name: gpu-webhook
   namespace: kube-system
 spec:
   ports:
   - port: 443
     targetPort: 8443
   selector:
-    app: sev-webhook
+    app: gpu-webhook
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sev-webhook
+  name: gpu-webhook
   namespace: kube-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sev-webhook
+      app: gpu-webhook
   template:
     metadata:
       labels:
-        app: sev-webhook
+        app: gpu-webhook
     spec:
-      serviceAccountName: sev-webhook
+      serviceAccountName: gpu-webhook
       containers:
       - name: webhook
-        image: seudockerhub/sev-webhook:latest
+        image: brunolaureano/gpu-webhook:latest
         ports:
         - containerPort: 8443
         volumeMounts:
         - name: webhook-certs
           mountPath: /etc/webhook/certs
           readOnly: true
+        - name: nvidia-driver
+          mountPath: /usr/lib/nvidia
       volumes:
       - name: webhook-certs
         secret:
-          secretName: sev-webhook-certs
+          secretName: gpu-webhook-certs
+      - name: nvidia-driver
+        hostPath:
+          path: /usr/lib/nvidia
+          type: Directory

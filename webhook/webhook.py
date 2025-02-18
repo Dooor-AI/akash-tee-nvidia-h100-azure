@@ -14,7 +14,7 @@ def configure_sev_pod(pod_spec):
     # Adicionar sidecar
     pod_spec['containers'].append({
         'name': 'sev-attestation',
-        'image': 'seudockerhub/sev-attestation:latest',
+        'image': 'brunolaureano/sev-attestation:latest',
         'ports': [{'containerPort': 8080}],
         'securityContext': {'privileged': True},
         'volumeMounts': [
