@@ -12,7 +12,7 @@ app = Flask(__name__)
 def run_attestation():
     """Executa o script de attestation e retorna os tokens"""
     try:
-        result = subprocess.run(['sudo', '/opt/cgpu-onboarding-package/step-2-attestation.sh'], 
+        result = subprocess.run(['sudo', 'bash', '/opt/cgpu-onboarding-package/step-2-attestation.sh'], 
                               capture_output=True, text=True)
 
         logging.info(f"Attestation output: {result.stdout[:200]}...")  # Log primeiros 200 caracteres
