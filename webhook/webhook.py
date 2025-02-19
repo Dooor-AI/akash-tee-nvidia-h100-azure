@@ -5,6 +5,7 @@ import json
 import subprocess
 import ssl
 import logging
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
@@ -12,11 +13,19 @@ app = Flask(__name__)
 def run_attestation():
     """Executa o script de attestation e retorna os tokens"""
     try:
-        result = subprocess.run(['sudo', 'bash', '/opt/cgpu-onboarding-package/step-2-attestation.sh'], 
-                              capture_output=True, text=True)
-
-        logging.info(f"Attestation output: {result.stdout[:200]}...")  # Log primeiros 200 caracteres
-
+        logging.info("Iniciando attestation...")
+        # Usar script completo com sudo
+        cmd = ['sudo', '-E', 'bash', '/opt/cgpu-onboarding-package/step-2-attestation.sh']
+        logging.info(f"Executando comando: {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, 
+                              capture_output=True, 
+                              text=True,
+                              env=dict(os.environ, PYTHONPATH='/usr/local/lib/python3.9/site-packages'))
+        
+        logging.info(f"Stdout: {result.stdout[:500]}")
+        logging.error(f"Stderr: {result.stderr}")
+        
         # Extrair os tokens do output
         output = result.stdout
         start = output.find('[')
@@ -24,11 +33,14 @@ def run_attestation():
         
         if start != -1 and end != -1:
             tokens = json.loads(output[start:end])
+            logging.info("Tokens extraídos com sucesso")
             return tokens
+            
+        logging.error("Não foi possível encontrar tokens no output")
         return None
     except Exception as e:
         logging.error(f"Erro na attestation: {str(e)}")
-        return None
+        return None 
 
 def configure_gpu_pod(pod_spec):
     """Configura pod para GPU Confidential"""

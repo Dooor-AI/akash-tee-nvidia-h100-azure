@@ -36,12 +36,18 @@ spec:
       containers:
       - name: webhook
         image: brunolaureano/gpu-webhook:latest
+        securityContext:
+          privileged: true
         ports:
         - containerPort: 8443
         volumeMounts:
         - name: webhook-certs
           mountPath: /etc/webhook/certs
           readOnly: true
+        - name: nvidia-drivers
+          mountPath: /usr/lib/x86_64-linux-gnu
+        - name: nvidia-bin
+          mountPath: /usr/bin/nvidia-smi
         - name: onboarding-package
           mountPath: /opt/cgpu-onboarding-package
           readOnly: true
@@ -49,7 +55,12 @@ spec:
       - name: webhook-certs
         secret:
           secretName: gpu-webhook-certs
+      - name: nvidia-drivers
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu
+      - name: nvidia-bin
+        hostPath:
+          path: /usr/bin/nvidia-smi
       - name: onboarding-package
         hostPath:
           path: /opt/cgpu-onboarding-package
-          type: Directory
