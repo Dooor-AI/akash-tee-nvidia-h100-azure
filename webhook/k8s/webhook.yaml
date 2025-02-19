@@ -30,3 +30,18 @@ spec:
       - name: webhook-certs
         secret:
           secretName: gpu-webhook-certs
+---
+# (Segundo objeto) Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpu-webhook                # mesmo nome que o MutatingWebhookConfiguration usa
+  namespace: kube-system
+spec:
+  selector:
+    app: gpu-webhook               # bate com o label do Deployment acima
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
