@@ -37,30 +37,32 @@ spec:
       - name: webhook
         image: brunolaureano/gpu-webhook:latest
         securityContext:
-          privileged: true
+          privileged: true  # Necessário para acessar GPU e executar sudo
         ports:
         - containerPort: 8443
         volumeMounts:
         - name: webhook-certs
           mountPath: /etc/webhook/certs
           readOnly: true
-        - name: nvidia-drivers
-          mountPath: /usr/lib/x86_64-linux-gnu
-        - name: nvidia-bin
-          mountPath: /usr/bin/nvidia-smi
         - name: onboarding-package
-          mountPath: /opt/cgpu-onboarding-package
-          readOnly: true
+          mountPath: /home/cgpu-onboarding/cgpu-onboarding-package
+        - name: nvidia-utils
+          mountPath: /usr/bin/nvidia-smi
+        - name: gpu-drivers
+          mountPath: /usr/lib/x86_64-linux-gnu
       volumes:
       - name: webhook-certs
         secret:
           secretName: gpu-webhook-certs
-      - name: nvidia-drivers
-        hostPath:
-          path: /usr/lib/x86_64-linux-gnu
-      - name: nvidia-bin
-        hostPath:
-          path: /usr/bin/nvidia-smi
       - name: onboarding-package
         hostPath:
-          path: /opt/cgpu-onboarding-package
+          path: /home/cgpu-onboarding/cgpu-onboarding-package
+          type: Directory
+      - name: nvidia-utils
+        hostPath:
+          path: /usr/bin/nvidia-smi
+          type: File
+      - name: gpu-drivers
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu
+          type: Directory

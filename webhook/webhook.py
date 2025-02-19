@@ -14,14 +14,12 @@ def run_attestation():
     """Executa o script de attestation e retorna os tokens"""
     try:
         logging.info("Iniciando attestation...")
-        # Usar script completo com sudo
-        cmd = ['sudo', '-E', 'bash', '/opt/cgpu-onboarding-package/step-2-attestation.sh']
+        cmd = ['sudo', '-E', 'bash', '/home/cgpu-onboarding/cgpu-onboarding-package/step-2-attestation.sh']
         logging.info(f"Executando comando: {' '.join(cmd)}")
         
         result = subprocess.run(cmd, 
                               capture_output=True, 
-                              text=True,
-                              env=dict(os.environ, PYTHONPATH='/usr/local/lib/python3.9/site-packages'))
+                              text=True)
         
         logging.info(f"Stdout: {result.stdout[:500]}")
         logging.error(f"Stderr: {result.stderr}")
@@ -40,7 +38,7 @@ def run_attestation():
         return None
     except Exception as e:
         logging.error(f"Erro na attestation: {str(e)}")
-        return None 
+        return None
 
 def configure_gpu_pod(pod_spec):
     """Configura pod para GPU Confidential"""
