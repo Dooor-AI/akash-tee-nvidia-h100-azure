@@ -1,74 +1,86 @@
+# webhook/webhook.py
 from flask import Flask, request, jsonify
 import base64
 import json
+import subprocess
 import ssl
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
-def configure_sev_pod(pod_spec):
-    """Configura pod para AMD SEV"""
-    logging.info("Configurando pod para AMD SEV")
-    
+def run_attestation():
+    """Executa o script de attestation e retorna os tokens"""
+    try:
+        result = subprocess.run(['sudo', '/opt/cgpu-onboarding-package/step-2-attestation.sh'], 
+                              capture_output=True, text=True)
+
+        logging.info(f"Attestation output: {result.stdout[:200]}...")  # Log primeiros 200 caracteres
+
+        # Extrair os tokens do output
+        output = result.stdout
+        start = output.find('[')
+        end = output.rfind(']') + 1
+        
+        if start != -1 and end != -1:
+            tokens = json.loads(output[start:end])
+            return tokens
+        return None
+    except Exception as e:
+        logging.error(f"Erro na attestation: {str(e)}")
+        return None
+
+def configure_gpu_pod(pod_spec):
+    """Configura pod para GPU Confidential"""
+    attestation_tokens = run_attestation()
+    if not attestation_tokens:
+        logging.error("Falha ao obter tokens de attestation")
+        return False
+
     # Adicionar sidecar
     pod_spec['containers'].append({
-        'name': 'sev-attestation',
-        'image': 'brunolaureano/sev-attestation:latest',
-        'ports': [{'containerPort': 8080}],
-        'securityContext': {'privileged': True},
-        'volumeMounts': [
-            {
-                'name': 'sev-device',
-                'mountPath': '/dev/sev-guest'
-            }
-        ]
+        'name': 'gpu-attestation',
+        'image': 'brunolaureano/gpu-attestation:latest',
+        'env': [{
+            'name': 'ATTESTATION_TOKENS',
+            'value': json.dumps(attestation_tokens)
+        }]
     })
-
-    # Adicionar volumes
-    pod_spec['volumes'] = pod_spec.get('volumes', [])
-    pod_spec['volumes'].append({
-        'name': 'sev-device',
-        'hostPath': {
-            'path': '/dev/sev-guest',
-            'type': 'CharDevice'
-        }
-    })
+    return True
 
 @app.route('/mutate', methods=['POST'])
 def mutate():
-    logging.info("Recebida requisição de mutação")
     request_info = request.json
-    
     try:
         pod = request_info['request']['object']
         modified_pod = json.loads(json.dumps(pod))
-        configure_sev_pod(modified_pod['spec'])
         
-        patch = [{"op": "replace", "path": "/spec", "value": modified_pod['spec']}]
-        patch_bytes = json.dumps(patch).encode()
-        patch_b64 = base64.b64encode(patch_bytes).decode()
-        
-        return jsonify({
-            "apiVersion": "admission.k8s.io/v1",
-            "kind": "AdmissionReview",
-            "response": {
-                "uid": request_info['request']['uid'],
-                "allowed": True,
-                "patchType": "JSONPatch",
-                "patch": patch_b64
-            }
-        })
+        if configure_gpu_pod(modified_pod['spec']):
+            patch = [{"op": "replace", "path": "/spec", "value": modified_pod['spec']}]
+            patch_bytes = json.dumps(patch).encode()
+            patch_b64 = base64.b64encode(patch_bytes).decode()
+            
+            return jsonify({
+                "apiVersion": "admission.k8s.io/v1",
+                "kind": "AdmissionReview",
+                "response": {
+                    "uid": request_info['request']['uid'],
+                    "allowed": True,
+                    "patchType": "JSONPatch",
+                    "patch": patch_b64
+                }
+            })
     except Exception as e:
         logging.error(f"Erro: {str(e)}")
-        return jsonify({
-            "apiVersion": "admission.k8s.io/v1",
-            "kind": "AdmissionReview",
-            "response": {
-                "uid": request_info['request']['uid'],
-                "allowed": True
-            }
-        })
+        
+    return jsonify({
+        "apiVersion": "admission.k8s.io/v1",
+        "kind": "AdmissionReview",
+        "response": {
+            "uid": request_info['request']['uid'],
+            "allowed": True
+        }
+    })
 
 if __name__ == '__main__':
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

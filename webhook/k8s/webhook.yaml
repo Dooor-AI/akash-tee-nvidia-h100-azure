@@ -42,13 +42,14 @@ spec:
         - name: webhook-certs
           mountPath: /etc/webhook/certs
           readOnly: true
-        - name: nvidia-driver
-          mountPath: /usr/lib/nvidia
+        - name: onboarding-package
+          mountPath: /opt/cgpu-onboarding-package
+          readOnly: true
       volumes:
       - name: webhook-certs
         secret:
           secretName: gpu-webhook-certs
-      - name: nvidia-driver
+      - name: onboarding-package
         hostPath:
-          path: /usr/lib/nvidia
+          path: /opt/cgpu-onboarding-package
           type: Directory
