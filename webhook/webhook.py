@@ -2,60 +2,62 @@
 from flask import Flask, request, jsonify
 import base64
 import json
-import subprocess
 import ssl
 import logging
-import os
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
-def run_attestation():
-    """Executa o script de attestation e retorna os tokens"""
-    try:
-        logging.info("Iniciando attestation...")
-        cmd = ['sudo', '-E', 'bash', '/home/cgpu-onboarding/cgpu-onboarding-package/step-2-attestation.sh']
-        logging.info(f"Executando comando: {' '.join(cmd)}")
-        
-        result = subprocess.run(cmd, 
-                              capture_output=True, 
-                              text=True)
-        
-        logging.info(f"Stdout: {result.stdout[:500]}")
-        logging.error(f"Stderr: {result.stderr}")
-        
-        # Extrair os tokens do output
-        output = result.stdout
-        start = output.find('[')
-        end = output.rfind(']') + 1
-        
-        if start != -1 and end != -1:
-            tokens = json.loads(output[start:end])
-            logging.info("Tokens extraídos com sucesso")
-            return tokens
-            
-        logging.error("Não foi possível encontrar tokens no output")
-        return None
-    except Exception as e:
-        logging.error(f"Erro na attestation: {str(e)}")
-        return None
-
 def configure_gpu_pod(pod_spec):
     """Configura pod para GPU Confidential"""
-    attestation_tokens = run_attestation()
-    if not attestation_tokens:
-        logging.error("Falha ao obter tokens de attestation")
-        return False
-
+    logging.info("Configurando pod para GPU TEE")
+    
     # Adicionar sidecar
     pod_spec['containers'].append({
         'name': 'gpu-attestation',
         'image': 'brunolaureano/gpu-attestation:latest',
-        'env': [{
-            'name': 'ATTESTATION_TOKENS',
-            'value': json.dumps(attestation_tokens)
-        }]
+        'securityContext': {'privileged': True},
+        'volumeMounts': [
+            {
+                'name': 'nvidia-device',
+                'mountPath': '/dev/nvidia0'
+            },
+            {
+                'name': 'nvidia-utils',
+                'mountPath': '/usr/bin/nvidia-smi'
+            },
+            {
+                'name': 'gpu-drivers',
+                'mountPath': '/usr/lib/x86_64-linux-gnu'
+            }
+        ]
     })
+    
+    # Adicionar volumes se não existirem
+    if 'volumes' not in pod_spec:
+        pod_spec['volumes'] = []
+    
+    pod_spec['volumes'].extend([
+        {
+            'name': 'nvidia-device',
+            'hostPath': {
+                'path': '/dev/nvidia0'
+            }
+        },
+        {
+            'name': 'nvidia-utils',
+            'hostPath': {
+                'path': '/usr/bin/nvidia-smi'
+            }
+        },
+        {
+            'name': 'gpu-drivers',
+            'hostPath': {
+                'path': '/usr/lib/x86_64-linux-gnu'
+            }
+        }
+    ])
+    
     return True
 
 @app.route('/mutate', methods=['POST'])
@@ -65,32 +67,32 @@ def mutate():
         pod = request_info['request']['object']
         modified_pod = json.loads(json.dumps(pod))
         
-        if configure_gpu_pod(modified_pod['spec']):
-            patch = [{"op": "replace", "path": "/spec", "value": modified_pod['spec']}]
-            patch_bytes = json.dumps(patch).encode()
-            patch_b64 = base64.b64encode(patch_bytes).decode()
-            
-            return jsonify({
-                "apiVersion": "admission.k8s.io/v1",
-                "kind": "AdmissionReview",
-                "response": {
-                    "uid": request_info['request']['uid'],
-                    "allowed": True,
-                    "patchType": "JSONPatch",
-                    "patch": patch_b64
-                }
-            })
+        configure_gpu_pod(modified_pod['spec'])
+        
+        patch = [{"op": "replace", "path": "/spec", "value": modified_pod['spec']}]
+        patch_bytes = json.dumps(patch).encode()
+        patch_b64 = base64.b64encode(patch_bytes).decode()
+        
+        return jsonify({
+            "apiVersion": "admission.k8s.io/v1",
+            "kind": "AdmissionReview",
+            "response": {
+                "uid": request_info['request']['uid'],
+                "allowed": True,
+                "patchType": "JSONPatch",
+                "patch": patch_b64
+            }
+        })
     except Exception as e:
         logging.error(f"Erro: {str(e)}")
-        
-    return jsonify({
-        "apiVersion": "admission.k8s.io/v1",
-        "kind": "AdmissionReview",
-        "response": {
-            "uid": request_info['request']['uid'],
-            "allowed": True
-        }
-    })
+        return jsonify({
+            "apiVersion": "admission.k8s.io/v1",
+            "kind": "AdmissionReview",
+            "response": {
+                "uid": request_info['request']['uid'],
+                "allowed": True
+            }
+        })
 
 if __name__ == '__main__':
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

@@ -7,15 +7,21 @@ services:
       platforms:
         - linux/amd64
     image: brunolaureano/gpu-webhook:latest
+
   attestation:
     build:
       context: ./sidecar
       platforms:
         - linux/amd64
     image: brunolaureano/gpu-attestation:latest
+    privileged: true  # Necessário para rodar o script de attestation
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      - /dev/nvidia0:/dev/nvidia0
+      - /usr/bin/nvidia-smi:/usr/bin/nvidia-smi
+      - /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu
     deploy:
       resources:
         reservations:
