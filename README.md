@@ -14,18 +14,18 @@
 - https://github.com/edgelesssys/ego/tree/master/samples/azure_attestation
 
 ## steps
-- # Download e extração do pacote
+- ### Download e extração do pacote
 - wget https://github.com/Azure/az-cgpu-onboarding/releases/download/V3.2.2/cgpu-onboarding-package.tar.gz
 - tar -xvf cgpu-onboarding-package.tar.gz
-cd cgpu-onboarding-package
+- cd cgpu-onboarding-package
 
-# Step 0: Preparar kernel e reboot
+### Step 0: Preparar kernel e reboot
 sudo bash step-0-prepare-kernel.sh
-# Aguarde o reboot e reconecte
+### Aguarde o reboot e reconecte
 
-# Step 1: Instalar driver GPU e reboot
+### Step 1: Instalar driver GPU e reboot
 sudo bash step-1-install-gpu-driver.sh
-# Aguarde o reboot e reconecte
+### Aguarde o reboot e reconecte
 
-# Step 2: Rodar attestation
+### Step 2: Rodar attestation
 sudo bash step-2-attestation.sh
