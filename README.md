@@ -15,8 +15,8 @@
 
 ## steps
 - # Download e extração do pacote
-wget https://github.com/Azure/az-cgpu-onboarding/releases/download/V3.2.2/cgpu-onboarding-package.tar.gz
-tar -xvf cgpu-onboarding-package.tar.gz
+- wget https://github.com/Azure/az-cgpu-onboarding/releases/download/V3.2.2/cgpu-onboarding-package.tar.gz
+- tar -xvf cgpu-onboarding-package.tar.gz
 cd cgpu-onboarding-package
 
 # Step 0: Preparar kernel e reboot
