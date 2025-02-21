@@ -11,3 +11,4 @@
 - https://techcommunity.microsoft.com/blog/azureconfidentialcomputingblog/azure-ai-confidential-inferencing-technical-deep-dive/4253150
 - https://learn.microsoft.com/en-us/azure/container-instances/confidential-containers-attestation-concepts
 - https://learn.microsoft.com/en-us/azure/confidential-computing/guest-attestation-example?tabs=linux
+- https://github.com/edgelesssys/ego/tree/master/samples/azure_attestation
